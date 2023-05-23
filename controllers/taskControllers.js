@@ -44,7 +44,6 @@ const createTask =async (req, res) => {
 
 }
 
-
 const getdetailTask = async (req, res) => {
 
     const task_id = req.body.task_id;
@@ -116,13 +115,11 @@ can be given status in query.
 /api/v1/task/
 
 if status is given filter only document contaning Status value as query status.
-
 if token belongs to admin than show task of all user.
 if token belongs to any other user than show task belong to that user only.
 Payload Structure is given in loginUser controller.
 
 response:
-
 200 status Code
 json = {
         status:'success',
@@ -135,8 +132,57 @@ the latest data will be at the top.
 */
 
 const getallTask = async (req, res) => {
-
     //Write your code here.
+    try{
+        const token = req.body.token;
+        let query = {};
+        const status = req.query.status;
+        if(status){
+            query.status = status;
+        }
+        if(!token){
+            return res.status(401).json({
+                status: 'fail',
+                message: "Authentication failed: Missing token."
+            })
+        }
+
+        let decodedToken, user_id;
+        try{
+            decodedToken = jwt.verify(token, JWT_SECRET);
+            user_id = decodedToken.userId;
+        }catch(err){
+            return res.status(404).json({
+                status: 'fail',
+                message: 'Invalid token'
+            })
+        }
+
+        const user = await Users.findById(user_id);
+        if(!user){
+            return res.res.status(404).json({
+                status: 'fail',
+                message: 'User does not exists'
+            })
+        }
+
+        if(user.role != "admin"){
+            query.creator_id = user_id;
+        }
+
+        const allTask = await Tasks.find(query).sort({createdAt: -1});
+
+        res.status(200).json({
+            status:'success',
+            data: allTask
+        })
+    }
+    catch(err){
+        res.status(404).json({
+            status: 'fail',
+            message: err.message
+        })
+    }
 }
 
 
