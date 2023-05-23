@@ -1,21 +1,21 @@
-const Users   = require("../models/user.js");
+const Users = require("../models/user.js");
 const jwt = require("jsonwebtoken");
-const bcrypt  = require('bcrypt');
+const bcrypt = require('bcrypt');
 
 const saltRounds = 10;
 const JWT_SECRET = "newtonSchool";
 
 
-const loginUser =async (req, res) => {
+const loginUser = async (req, res) => {
 
-    const email  = req.body.email;
+    const email = req.body.email;
     const password = req.body.password;
 
-    const user = await Users.findOne({ 'email':email });
+    const user = await Users.findOne({ 'email': email });
 
-    if(user){
+    if (user) {
 
-        if(bcrypt.compareSync(password , user.password)){
+        if (bcrypt.compareSync(password, user.password)) {
 
             const token = jwt.sign(
                 { userId: user._id },
@@ -29,13 +29,13 @@ const loginUser =async (req, res) => {
                 status: 'success',
                 token
             });
-        }else{
+        } else {
             res.status(403).json({
                 message: 'Invalid Password, try again !!',
                 status: 'fail'
             });
         }
-    }else{
+    } else {
         res.status(404).json({
             message: 'User with this E-mail does not exist !!',
             status: 'fail'
@@ -47,10 +47,10 @@ const loginUser =async (req, res) => {
 
 const signupUser = async (req, res) => {
 
-    const {email, password, name, role} = req.body;
+    const { email, password, name, role } = req.body;
 
     const user = await Users.findOne({ email });
-    if(user){
+    if (user) {
         res.status(409).json({
             message: 'User with given Email allready register',
             status: 'fail'
@@ -67,13 +67,13 @@ const signupUser = async (req, res) => {
         role
     };
 
-    try{
+    try {
         await Users.create(newuser);
         res.status(200).json({
             message: 'User SignedUp successfully',
             status: 'success'
         });
-    } catch(err){
+    } catch (err) {
         res.status(404).json({
             status: 'fail',
             message: 'Something went wrong'
@@ -97,7 +97,6 @@ const signupUser = async (req, res) => {
  
  If there is an error during the JWT verification process or clearing the cookie, the controller should respond with a 500 Internal Server Error status and a JSON object containing a 'message' field with value 'Something went wrong', a 'status' field with value 'fail', and an 'error' field with the error object.
  
- 
  Output:
  {
  "message": "Logged out successfully.",
@@ -105,11 +104,33 @@ const signupUser = async (req, res) => {
  }
  */
 
- const logout = (req, res) => {
+const logout = (req, res) => {
     const token = req.body.token;
-
     //Write your code here.
+    if (!token) {
+        return res.status(401).json({
+            status: 'fail',
+            message: "Authentication failed: Missing token."
+        })
+    }
+
+    try {
+        jwt.verify(token, JWT_SECRET);
+
+        res.clearCookie();
+        res.status(200).json({
+            "message": "Logged out successfully.",
+            "status": "Success"
+        })
+    }
+    catch (err) {
+        res.status(500).json({
+            status: 'fail',
+            message: "Something went wrong",
+            error: err
+        })
+    }
 };
 
-module.exports = { loginUser , signupUser, logout };
+module.exports = { loginUser, signupUser, logout };
 
